@@ -42,8 +42,7 @@ def main():
         user_id int,
         date_of_log date,
         scraper_success bool,
-        email_success bool,
-        primary key(user_id)
+        email_success bool
         );
     """
 
