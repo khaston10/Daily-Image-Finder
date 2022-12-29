@@ -88,6 +88,9 @@ class CredentialScreen(Screen):
 
     def create_account(self):
         if add_credentials(self.ids.new_email.text, self.ids.password.text):
+            # Update the email address on the login screen so the
+            login_screen = self.manager.get_screen('login')
+            login_screen.ids.email.text = self.ids.new_email.text
             # Update the keyword from the main_screen
             main_screen = self.manager.get_screen('main')
             main_screen.ids.key_word.text = get_key_word(self.ids.new_email.text)

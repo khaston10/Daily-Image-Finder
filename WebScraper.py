@@ -11,8 +11,11 @@ import os
 import datetime
 
 PATH = "\\chromedriver.exe"
+saved_images_path = "imgs/"
 service_obj = Service(PATH)
 wd = webdriver.Chrome(service=service_obj)
+num_of_attempts = 5
+delay_time = 1
 user_data = {}
 log = {}
 
@@ -62,7 +65,7 @@ def update_log_table(user_id, success):
 def download_all_images_using_user_data():
     for key in user_data:
         initial_image_url = set_initial_image_url(user_data[key])
-        urls = get_images_from_google(wd, 2, 3, initial_image_url)
+        urls = get_images_from_google(wd, delay_time, num_of_attempts, initial_image_url)
         # Grab random URL from the returned set and download it.
         rand_index = randint(0, len(urls) - 1)
         image_has_been_down_loaded = download_images("imgs/", list(urls)[rand_index], str(key) + ".jpg")
@@ -84,7 +87,11 @@ def download_images(download_path, url, file_name):
         image = Image.open(image_file)
         file_path = download_path + file_name
 
+        # Convert the image to RGB to ensure it can be downloaded as a JPG
+        image = image.convert('RGB')
+
         with open(file_path, "wb") as f:
+
             image.save(f, "JPEG")
 
         print("Success")
@@ -92,6 +99,8 @@ def download_images(download_path, url, file_name):
 
     except Exception as e:
         print("Fail")
+        print(url)
+        print(e)
 
     return image_has_been_downloaded
 
@@ -115,7 +124,9 @@ def get_images_from_google(wd, delay, max_images, in_image_url):
             try:
                 img.click()
                 time.sleep(delay)
-            except:
+
+            except Exception as e:
+                print(e)
                 continue
 
             images = wd.find_elements(By.CLASS_NAME, "n3VNCb")
@@ -124,16 +135,43 @@ def get_images_from_google(wd, delay, max_images, in_image_url):
                 if image.get_attribute('src') in image_urls:
                     max_images += 1
                     skips += 1
+                    print("Stuck On Image!")
                     break
 
                 if image.get_attribute('src') and 'http' in image.get_attribute('src'):
                     image_urls.add(image.get_attribute('src'))
                     print("Found Image!")
-
+        image_urls = check_to_see_if_url_in_urls_have_good_image_info(image_urls)
         return image_urls
 
 
+def delete_all_saved_images():
+    for f in os.listdir(saved_images_path):
+        os.remove(os.path.join(saved_images_path, f))
+
+
+def check_to_see_if_url_in_urls_have_good_image_info(image_urls):
+    good_urls = set()
+
+    for url in image_urls:
+
+        try:
+            image_content = requests.get(url).content
+            image_file = io.BytesIO(image_content)
+            image = Image.open(image_file)
+            image = image.convert('RGB')
+            good_urls.add(url)
+
+        except Exception as e:
+            print("Bad URL")
+            print(e)
+
+    return good_urls
+
+
 if __name__ == '__main__':
+    delete_all_saved_images()
     get_user_data()
+    print(user_data)
     download_all_images_using_user_data()
 
